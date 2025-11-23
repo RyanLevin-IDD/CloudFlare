@@ -175,21 +175,8 @@ function parseRequestParameters(sheet, startRow, endRow) {
   const headers = [...headerRow];
   const existingParamCols = {};
   
-  // Ensure NULL column exists right after Dev Request
-  const nullColIndex = requestColIndex + 1;
-  const hasNullColumn = headers.length > nullColIndex && headers[nullColIndex] === "NULL";
-  
-  if (!hasNullColumn) {
-    sheet.getRange(1, nullColIndex + 1).setValue("NULL");
-    sheet.getRange(1, nullColIndex + 1).setBackground("#b6d7a8");
-    // Re-read headers after adding column
-    const newHeaderRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    headers.length = 0;
-    headers.push(...newHeaderRow);
-  }
-  
-  // Map existing parameter columns (skip NULL column)
-  for (let i = requestColIndex + 2; i < headers.length; i++) {
+  // Map existing parameter columns
+  for (let i = requestColIndex + 1; i < headers.length; i++) {
     if (typeof headers[i] === "string") {
       existingParamCols[headers[i].toLowerCase()] = i;
     }
@@ -203,22 +190,23 @@ function parseRequestParameters(sheet, startRow, endRow) {
     params.forEach(([key, value]) => {
       const keyLower = key.toLowerCase();
       let colIndex;
-      
-      if (keyLower === "null") {
-        colIndex = nullColIndex;
-      } else {
-        colIndex = existingParamCols[keyLower];
-        
-        // Column doesn't exist - create it after NULL column
-        if (colIndex === undefined) {
-          headers.push(key);
-          colIndex = headers.length - 1;
-          existingParamCols[keyLower] = colIndex;
-          sheet.getRange(1, colIndex + 1).setValue(key);
-          sheet.getRange(1, colIndex + 1).setBackground("#b6d7a8");
-        }
+
+      // If key is empty -> treat as "NULL"
+      const normalizedKey = keyLower === "" ? "null" : keyLower;
+
+      colIndex = existingParamCols[normalizedKey];
+
+      // Create column only when needed
+      if (colIndex === undefined) {
+        const newHeaderName = normalizedKey === "null" ? "NULL" : key;
+        headers.push(newHeaderName);
+        colIndex = headers.length - 1;
+        existingParamCols[normalizedKey] = colIndex;
+
+        sheet.getRange(1, colIndex + 1).setValue(newHeaderName);
+        sheet.getRange(1, colIndex + 1).setBackground("#b6d7a8");
       }
-      
+
       // Set value in row
       sheet.getRange(startRow + rowIdx, colIndex + 1).setValue(value);
     });
