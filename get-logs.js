@@ -1,5 +1,3 @@
-const DOMAIN_NAME = "domainName"; 
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -49,11 +47,13 @@ export default {
 
     const columns = Object.keys(logEntry).map(c => `"${c}"`);
     const placeholders = columns.map(() => "?");
-
+    const dbTablePrefix = "pending_logs_";
+    const safeDomain = env.DOMAIN.replace(/\./g, "_");
+    const dbTableName = dbTablePrefix + safeDomain;
     await env.DB.prepare(
-      `INSERT INTO pending_logs_${DOMAIN_NAME} (${columns.join(",")}) VALUES (${placeholders.join(",")})`
+      `INSERT INTO ${dbTableName} (${columns.join(",")}) VALUES (${placeholders.join(",")})`
     ).bind(...Object.values(logEntry)).run();
-
+      
     return fetch(request);
   }
 };
