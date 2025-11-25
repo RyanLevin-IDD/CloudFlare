@@ -1,9 +1,14 @@
 export default {
   async fetch(request, env, ctx) {
-    await this.scheduled({ scheduledTime: new Date().toISOString() }, env, ctx);
-    return new Response("Worker triggered manually or via service binding", { status: 200 });
+    try {
+      const result = await this.scheduled({ scheduledTime: new Date().toISOString() }, env, ctx);
+      return new Response("Scheduled OK: Worker triggerd", { status: 200 });
+    } catch (err) {
+      const errText = (err && err.stack) ? err.stack : String(err);
+      console.error("DEBUG scheduled threw:", errText);
+      return new Response("Scheduled ERROR: " + errText, { status: 500 });
+    }
   },
-
   async scheduled(event, env, ctx) {
     try {
       //Fetch pending logs
@@ -114,3 +119,4 @@ export default {
     }
   }
 };
+
